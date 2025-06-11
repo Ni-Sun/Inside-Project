@@ -96,7 +96,7 @@ extern u16  BACK_COLOR; //背景颜色.默认为白色
 
 //////////////////////////////////////////////////////////////////////////////////	 
 //-----------------LCD端口定义---------------- 
-#define	LCD_LED PBout(0) //LCD背光  PB0 	    
+#define	LCD_LED PGout(4) //LCD背光  PB0 	    
 //LCD地址结构体
 typedef struct
 {
@@ -150,7 +150,13 @@ typedef struct
 
 #define LGRAYBLUE        0XA651 //浅灰蓝色(中间层颜色)
 #define LBBLUE           0X2B12 //浅棕蓝色(选择条目的反色)
-	    															  
+	    				
+#define	LCD_LED_ON GPIO_SetBits(GPIOG, GPIO_Pin_4);
+#define	LCD_LED_OFF GPIO_ResetBits(GPIOG, GPIO_Pin_4);
+
+#define	LCD_RST_ON GPIO_SetBits(GPIOG,GPIO_Pin_5) 	//LCD背光	PG4	
+#define	LCD_RST_OFF GPIO_ResetBits(GPIOG,GPIO_Pin_5)
+
 void LCD_Init(void);													   	//初始化
 void LCD_DisplayOn(void);													//开显示
 void LCD_DisplayOff(void);													//关显示

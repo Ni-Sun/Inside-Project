@@ -595,53 +595,89 @@ void LCD_Set_Window(u16 sx,u16 sy,u16 width,u16 height)
 //在其他型号的驱动芯片上没有测试! 
 void LCD_Init(void)
 { 					
- 	GPIO_InitTypeDef GPIO_InitStructure;
+ 	GPIO_InitTypeDef GPIO_InitStruct;
 	FSMC_NORSRAMInitTypeDef  FSMC_NORSRAMInitStructure;
 	FSMC_NORSRAMTimingInitTypeDef  readWriteTiming; 
 	FSMC_NORSRAMTimingInitTypeDef  writeTiming;
 	
 	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_FSMC,ENABLE);	//使能FSMC时钟
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB|RCC_APB2Periph_GPIOD|RCC_APB2Periph_GPIOE|RCC_APB2Periph_GPIOG,ENABLE);//使能PORTB,D,E,G以及AFIO复用功能时钟
+ GPIO_SetBits(GPIOG, GPIO_Pin_4|GPIO_Pin_5);
+// ????(SPL??????????)
+GPIO_InitStruct.GPIO_Pin = GPIO_Pin_4 | GPIO_Pin_5;  
 
- 
+// ????(SPL?????????)
+GPIO_InitStruct.GPIO_Mode = GPIO_Mode_Out_PP;      // ??????
+
+// ????(SPL???????)
+GPIO_InitStruct.GPIO_Speed = GPIO_Speed_2MHz;      // ??????
+
+// ?????(SPL????????)
+GPIO_Init(GPIOG, &GPIO_InitStruct);
+
+ /*
  	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;				 //PB0 推挽输出 背光
  	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP; 		 //推挽输出
- 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+ 	GPIO_InitStructure.GPIO_GPIO_Speed = GPIO_GPIO_Speed_50MHz;
  	GPIO_Init(GPIOB, &GPIO_InitStructure);
 	
  	//PORTD复用推挽输出  
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0|GPIO_Pin_1|GPIO_Pin_4|GPIO_Pin_5|GPIO_Pin_8|GPIO_Pin_9|GPIO_Pin_10|GPIO_Pin_14|GPIO_Pin_15;				 //	//PORTD复用推挽输出  
  	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP; 		 //复用推挽输出   
- 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+ 	GPIO_InitStructure.GPIO_GPIO_Speed = GPIO_GPIO_Speed_50MHz;
  	GPIO_Init(GPIOD, &GPIO_InitStructure); 
   	 
 	//PORTE复用推挽输出  
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_7|GPIO_Pin_8|GPIO_Pin_9|GPIO_Pin_10|GPIO_Pin_11|GPIO_Pin_12|GPIO_Pin_13|GPIO_Pin_14|GPIO_Pin_15;				 //	//PORTD复用推挽输出  
  	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP; 		 //复用推挽输出   
- 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+ 	GPIO_InitStructure.GPIO_GPIO_Speed = GPIO_GPIO_Speed_50MHz;
  	GPIO_Init(GPIOE, &GPIO_InitStructure);    	    	 											 
 
    	//	//PORTG12复用推挽输出 A0	
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0|GPIO_Pin_12;	 //	//PORTD复用推挽输出  
  	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP; 		 //复用推挽输出   
- 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+ 	GPIO_InitStructure.GPIO_GPIO_Speed = GPIO_GPIO_Speed_50MHz;
  	GPIO_Init(GPIOG, &GPIO_InitStructure); 
+*/
+  GPIO_InitStruct.GPIO_Pin = GPIO_Pin_0|GPIO_Pin_12;
+  GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF_PP;
+  GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
 
+  GPIO_Init(GPIOG, &GPIO_InitStruct);
+
+  /* GPIO_InitStruct */
+  GPIO_InitStruct.GPIO_Pin = GPIO_Pin_7|GPIO_Pin_8|GPIO_Pin_9|GPIO_Pin_10
+                          |GPIO_Pin_11|GPIO_Pin_12|GPIO_Pin_13|GPIO_Pin_14
+                          |GPIO_Pin_15;
+  GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF_PP;
+  GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+
+  GPIO_Init(GPIOE, &GPIO_InitStruct);
+
+  /* GPIO_InitStruct */
+  GPIO_InitStruct.GPIO_Pin = GPIO_Pin_8|GPIO_Pin_9|GPIO_Pin_10|GPIO_Pin_14
+                          |GPIO_Pin_15|GPIO_Pin_0|GPIO_Pin_1|GPIO_Pin_4
+                          |GPIO_Pin_5;
+  GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF_PP;
+  GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+
+  GPIO_Init(GPIOD, &GPIO_InitStruct);
+	
 	readWriteTiming.FSMC_AddressSetupTime = 0x01;	 //地址建立时间（ADDSET）为2个HCLK 1/36M=27ns
-  readWriteTiming.FSMC_AddressHoldTime = 0x00;	 //地址保持时间（ADDHLD）模式A未用到	
+  readWriteTiming.FSMC_AddressHoldTime = 0x0f;	 //地址保持时间（ADDHLD）模式A未用到	
   readWriteTiming.FSMC_DataSetupTime = 0x0f;		 // 数据保存时间为16个HCLK,因为液晶驱动IC的读数据的时候，速度不能太快，尤其对1289这个IC。
   readWriteTiming.FSMC_BusTurnAroundDuration = 0x00;
-  readWriteTiming.FSMC_CLKDivision = 0x00;
-  readWriteTiming.FSMC_DataLatency = 0x00;
+  readWriteTiming.FSMC_CLKDivision = 0x10;
+  readWriteTiming.FSMC_DataLatency = 0x11;
   readWriteTiming.FSMC_AccessMode = FSMC_AccessMode_A;	 //模式A 
     
 
 	writeTiming.FSMC_AddressSetupTime = 0x00;	 //地址建立时间（ADDSET）为1个HCLK  
-  writeTiming.FSMC_AddressHoldTime = 0x00;	 //地址保持时间（A		
+  writeTiming.FSMC_AddressHoldTime = 0x0f;	 //地址保持时间（A		
   writeTiming.FSMC_DataSetupTime = 0x03;		 ////数据保存时间为4个HCLK	
   writeTiming.FSMC_BusTurnAroundDuration = 0x00;
-  writeTiming.FSMC_CLKDivision = 0x00;
-  writeTiming.FSMC_DataLatency = 0x00;
+  writeTiming.FSMC_CLKDivision = 0x10;
+  writeTiming.FSMC_DataLatency = 0x11;
   writeTiming.FSMC_AccessMode = FSMC_AccessMode_A;	 //模式A 
 
  
@@ -720,6 +756,7 @@ void LCD_Init(void)
  	//printf(" LCD ID:%x\r\n",lcddev.id); //打印LCD ID   
 	if(lcddev.id==0X9341)	//9341初始化
 	{	 
+		/*
 		LCD_WR_REG(0xCF);  //功耗控制
 		LCD_WR_DATA(0x00); 
 		LCD_WR_DATA(0xC1); 
@@ -812,6 +849,107 @@ void LCD_Init(void)
 		LCD_WR_REG(0x11); //Exit Sleep
 		delay_ms(120);
 		LCD_WR_REG(0x29); //display on	
+		*/
+			LCD_RST_OFF;
+	delay_ms(100);
+	LCD_RST_ON;
+	delay_ms(100);	
+		LCD_WR_REG(0xCF);  
+	LCD_WR_DATA(0x00); 
+	LCD_WR_DATA(0xD9); //0xC1 
+	LCD_WR_DATA(0X30); 
+	LCD_WR_REG(0xED);  
+	LCD_WR_DATA(0x64); 
+	LCD_WR_DATA(0x03); 
+	LCD_WR_DATA(0X12); 
+	LCD_WR_DATA(0X81); 
+	LCD_WR_REG(0xE8);  
+	LCD_WR_DATA(0x85); 
+	LCD_WR_DATA(0x10); 
+	LCD_WR_DATA(0x7A); 
+	LCD_WR_REG(0xCB);  
+	LCD_WR_DATA(0x39); 
+	LCD_WR_DATA(0x2C); 
+	LCD_WR_DATA(0x00); 
+	LCD_WR_DATA(0x34); 
+	LCD_WR_DATA(0x02); 
+	LCD_WR_REG(0xF7);  
+	LCD_WR_DATA(0x20); 
+	LCD_WR_REG(0xEA);  
+	LCD_WR_DATA(0x00); 
+	LCD_WR_DATA(0x00); 
+	LCD_WR_REG(0xC0);    //Power control 
+	LCD_WR_DATA(0x1B);   //VRH[5:0] 
+	LCD_WR_REG(0xC1);    //Power control 
+	LCD_WR_DATA(0x12);   //SAP[2:0];BT[3:0] 0x01
+	LCD_WR_REG(0xC5);    //VCM control 
+	LCD_WR_DATA(0x08); 	 //30
+	LCD_WR_DATA(0x26); 	 //30
+	LCD_WR_REG(0xC7);    //VCM control2 
+	LCD_WR_DATA(0XB7); 
+	LCD_WR_REG(0x36);    // Memory Access Control 
+	LCD_WR_DATA(0x08); 
+	LCD_WR_REG(0x3A);   
+	LCD_WR_DATA(0x55); 
+	LCD_WR_REG(0xB1);   
+	LCD_WR_DATA(0x00);   
+	LCD_WR_DATA(0x1A); 
+	LCD_WR_REG(0xB6);    // Display Function Control 
+	LCD_WR_DATA(0x0A); 
+	LCD_WR_DATA(0xA2); 
+	LCD_WR_REG(0xF2);    // 3Gamma Function Disable 
+	LCD_WR_DATA(0x00); 
+	LCD_WR_REG(0x26);    //Gamma curve selected 
+	LCD_WR_DATA(0x01); 
+	LCD_WR_REG(0xE0);    //Set Gamma 
+	LCD_WR_DATA(0x0F); 
+	LCD_WR_DATA(0x1D); 
+	LCD_WR_DATA(0x1A); 
+	LCD_WR_DATA(0x0A); 
+	LCD_WR_DATA(0x0D); 
+	LCD_WR_DATA(0x07); 
+	LCD_WR_DATA(0x49); 
+	LCD_WR_DATA(0X66); 
+	LCD_WR_DATA(0x3B); 
+	LCD_WR_DATA(0x07); 
+	LCD_WR_DATA(0x11); 
+	LCD_WR_DATA(0x01); 
+	LCD_WR_DATA(0x09); 
+	LCD_WR_DATA(0x05); 
+	LCD_WR_DATA(0x04); 		 
+	LCD_WR_REG(0XE1);    //Set Gamma 
+	LCD_WR_DATA(0x00); 
+	LCD_WR_DATA(0x18); 
+	LCD_WR_DATA(0x1D); 
+	LCD_WR_DATA(0x02); 
+	LCD_WR_DATA(0x0F); 
+	LCD_WR_DATA(0x04); 
+	LCD_WR_DATA(0x36); 
+	LCD_WR_DATA(0x13); 
+	LCD_WR_DATA(0x4C); 
+	LCD_WR_DATA(0x07); 
+	LCD_WR_DATA(0x13); 
+	LCD_WR_DATA(0x0F); 
+	LCD_WR_DATA(0x2E); 
+	LCD_WR_DATA(0x2F); 
+	LCD_WR_DATA(0x05); 
+	LCD_WR_REG(0x2B); 
+	LCD_WR_DATA(0x00);
+	LCD_WR_DATA(0x00);
+	LCD_WR_DATA(0x01);
+	LCD_WR_DATA(0x3f);
+	LCD_WR_REG(0x2A); 
+	LCD_WR_DATA(0x00);
+	LCD_WR_DATA(0x00);
+	LCD_WR_DATA(0x00);
+	LCD_WR_DATA(0xef);	 
+	LCD_WR_REG(0x11); //Exit Sleep
+	delay_ms(120);
+	LCD_WR_REG(0x29); //display on		
+
+  //LCD_direction(USE_HORIZONTAL);//设置LCD显示方向
+	LCD_LED_ON;//点亮背光	 
+	LCD_Clear(WHITE);//清全屏白色
 	}else if(lcddev.id==0x6804) //6804初始化
 	{
 		LCD_WR_REG(0X11);
