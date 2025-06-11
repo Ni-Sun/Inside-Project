@@ -15,7 +15,7 @@
 #include "24cxx.h"
 #include "w25qxx.h"
 #include "touch.h"
-
+#include "spi.h"
 void app_init();
 void game_help();
 void game_single();
@@ -75,7 +75,8 @@ void app_init()
 	u8 key;
 	u8 i = 0;
 
-	LCD_Clear(BLACK);
+	LCD_Clear(WHITE);
+	//while(1);
 	enable = 1;
 	side = 0;
 	mode = -1;
@@ -613,7 +614,7 @@ void game_help()
 		fWriteHz24(GB_24[13].Msk, 125, 100, 1.5, RED);
 		fWriteHz24(GB_24[14].Msk, 155, 100, 1.5, RED);
 
-		delayvvvvvv_ms(50);
+		delay_ms(50);
 
 		tp_dev.scan(0);
 		if (tp_dev.sta & TP_PRES_DOWN) //判断触摸屏是否被按下
@@ -628,7 +629,7 @@ void game_help()
 }
 
 void game_settings()
-{ed
+{
 	LCD_Clear(BLACK);
 	//显示设置
 //		fWriteHz24(GB_24[11].Msk, 65, 100, 1.5, RED);
@@ -689,12 +690,14 @@ int main()
 	delay_init();
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
 	LCD_Init();
+	SoftSPI_Init();
+		//LCD_Clear(WHITE);
+	//GPIO_SetBits(GPIOG, GPIO_Pin_4);
 	tp_dev.init();
 	uart_init(115200);
 	LED_Init();
 	KEY_Init();
 	POINT_COLOR = RED;
-	
 	//checkModuleOn();
 	
 	//settingUDPMod();
