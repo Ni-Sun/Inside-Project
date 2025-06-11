@@ -4,6 +4,7 @@
 #include "stdlib.h"
 #include "math.h"
 #include "24cxx.h" 
+#include "spi.h"
 //////////////////////////////////////////////////////////////////////////////////	 
 //本程序只供学习使用，未经作者许可，不得用于其它任何用途
 //ALIENTEK STM32开发板
@@ -118,12 +119,13 @@ u16 TP_Read_XOY(u8 xy)
 //返回值:0,失败;1,成功。
 u8 TP_Read_XY(u16 *x,u16 *y)
 {
-	u16 xtemp,ytemp;			 	 		  
-	xtemp=TP_Read_XOY(CMD_RDX);
-	ytemp=TP_Read_XOY(CMD_RDY);	  												   
+	TouchPoint point;
+  TouchPointDebug debug;
+	TOUCH_GetPoint(&point, &debug); 		
+	if(point.z == 0) return 0;
 	//if(xtemp<100||ytemp<100)return 0;//读数失败
-	*x=xtemp;
-	*y=ytemp;
+	*x=(u16)point.x;
+	*y=(u16)point.y;
 	return 1;//读数成功
 }
 //连续2次读取触摸屏IC,且这两次的偏差不能超过
@@ -189,8 +191,8 @@ u8 TP_Scan(u8 tp)
 		if(tp)TP_Read_XY2(&tp_dev.x[0],&tp_dev.y[0]);//读取物理坐标
 		else if(TP_Read_XY2(&tp_dev.x[0],&tp_dev.y[0]))//读取屏幕坐标
 		{
-	 		tp_dev.x[0]=tp_dev.xfac*tp_dev.x[0]+tp_dev.xoff;//将结果转换为屏幕坐标
-			tp_dev.y[0]=tp_dev.yfac*tp_dev.y[0]+tp_dev.yoff;  
+	 		//tp_dev.x[0]=tp_dev.xfac*tp_dev.x[0]+tp_dev.xoff;//将结果转换为屏幕坐标
+			//tp_dev.y[0]=tp_dev.yfac*tp_dev.y[0]+tp_dev.yoff;  
 	 	} 
 		if((tp_dev.sta&TP_PRES_DOWN)==0)//之前没有被按下
 		{		 
@@ -425,6 +427,17 @@ void TP_Adjust(void)
 	 	} 
  	}
 }	 
+// ????(???HAL??????)
+#define SPI_SCK_GPIO     GPIOB
+#define SPI_SCK_PIN      GPIO_Pin_13
+#define SPI_MOSI_GPIO    GPIOB
+#define SPI_MOSI_PIN     GPIO_Pin_15
+#define SPI_MISO_GPIO    GPIOB
+#define SPI_MISO_PIN     GPIO_Pin_14
+
+// ???(??????????)
+#define SPI_DELAY()  __asm__ volatile("nop;nop;nop;nop")
+
 //触摸屏初始化  		    
 //返回值:0,没有进行校准
 //       1,进行过校准
@@ -452,11 +465,29 @@ u8 TP_Init(void)
 		return 0;
 	}else
 	{
-	  GPIO_InitTypeDef  GPIO_InitStructure;
+		GPIO_InitTypeDef GPIO_InitStruct;
+    
+    // 1. ????(APB2??)
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
+
+    // 2. ??SCK?MOSI?????
+    GPIO_InitStruct.GPIO_Pin = SPI_SCK_PIN | SPI_MOSI_PIN;
+    GPIO_InitStruct.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(SPI_SCK_GPIO, &GPIO_InitStruct);
+
+    // 3. ??MISO?????
+    GPIO_InitStruct.GPIO_Pin = SPI_MISO_PIN;
+    GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    GPIO_Init(SPI_MISO_GPIO, &GPIO_InitStruct);
+
+    // 4. ??????
+    GPIO_WriteBit(SPI_SCK_GPIO, SPI_SCK_PIN, Bit_RESET); // SCK???
+    GPIO_WriteBit(SPI_MOSI_GPIO, SPI_MOSI_PIN, Bit_RESET); // MOSI???
 
 		//注意,时钟使能之后,对GPIO的操作才有效
 		//所以上拉之前,必须使能时钟.才能实现真正的上拉输出
-   	 	
+   	 	/*
 	 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB|RCC_APB2Periph_GPIOF, ENABLE);	 //使能PB,PF端口时钟
 		
 		GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;				 // PB1端口配置
@@ -480,7 +511,7 @@ u8 TP_Init(void)
 	 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU; 		 //上拉输入
 	 	GPIO_Init(GPIOF, &GPIO_InitStructure);//PF10上拉输入
 	 	GPIO_SetBits(GPIOF,GPIO_Pin_10);//上拉		
- 
+ */
 		TP_Read_XY(&tp_dev.x[0],&tp_dev.y[0]);//第一次读取初始化	 
 		AT24CXX_Init();			//初始化24CXX
 		if(TP_Get_Adjdata())return 0;//已经校准
