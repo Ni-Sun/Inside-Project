@@ -26,6 +26,6 @@
 "..\obj\stm32f10x_spi.o"
 "..\obj\stm32f10x_usart.o"
 --strict --scatter "..\OBJ\TOUCH.sct"
---summary_stderr --info summarysizes --map --xref --callgraph --symbols
+--summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
 --info sizes --info totals --info unused --info veneers
 --list ".\TOUCH.map" -o ..\OBJ\TOUCH.axf
