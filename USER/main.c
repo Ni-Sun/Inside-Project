@@ -41,7 +41,7 @@ void test(u16 x, u16 y, u8 test);
 
 u8 enable = 1;		  //主菜单响应变量，默认为1
 u8 enable_test =0;  //测试选项，默认为0
-u8 map[15][15] = {0}; //棋谱 Map
+u8 map[3][3] = {0}; //棋谱 Map (修改为3x3)
 u16 side = 0;		  //当前执子的颜色
 u8 mode = -1;		  //游戏模式
 u16 ch_s = 0;		  //开局选择的颜色
@@ -83,13 +83,12 @@ void app_init()
 	x = -1;
 	y = -1;
 	
-	memset(map,0,sizeof(u8)*15*15);
+	memset(map,0,sizeof(u8)*3*3);
 
-
-	//
-	fWriteHz24(GB_24[0].Msk, 50, 30, 2, RED);
-	fWriteHz24(GB_24[1].Msk, 100, 30, 2, RED);
-	fWriteHz24(GB_24[2].Msk, 150, 30, 2, RED);
+	// 标题显示 - 井字棋
+	fWriteHz24(GB_24[19].Msk, 50, 30, 2, RED);  // 井
+	fWriteHz24(GB_24[20].Msk, 100, 30, 2, RED); // 字
+	fWriteHz24(GB_24[21].Msk, 150, 30, 2, RED); // 棋
 	//
 	fWriteHz24(GB_24[3].Msk, 65, 120, 1, GBLUE);
 	fWriteHz24(GB_24[4].Msk, 95, 120, 1, GBLUE);
@@ -165,33 +164,26 @@ void LCD_Draw_Point(u16 x, u16 y, u16 color)
 //*************************************************
 void DrawChessboard()
 {
-	//LCD_Clear(WHITE);
+	int wide = 60;
+	LCD_Clear(WHITE);
+	LCD_DrawLine(wide-wide/2,   wide, 4*wide-wide/2,   wide);  // 第一横线
+	LCD_DrawLine(wide-wide/2, 2*wide, 4*wide-wide/2, 2*wide);  // 第二横线
+	LCD_DrawLine(wide-wide/2, 3*wide, 4*wide-wide/2, 3*wide);  // 第三横线
+	LCD_DrawLine(wide-wide/2, 4*wide, 4*wide-wide/2, 4*wide);  // 第四横线
 
-	i = 15;
-	j = 20;
+	LCD_DrawLine(  wide-wide/2, wide,     wide-wide/2, 4*wide);  // 第一竖线
+	LCD_DrawLine(2*wide-wide/2, wide,   2*wide-wide/2, 4*wide);  // 第二竖线
+	LCD_DrawLine(3*wide-wide/2, wide,   3*wide-wide/2, 4*wide);  // 第三竖线
+	LCD_DrawLine(4*wide-wide/2, wide,   4*wide-wide/2, 4*wide);  // 第四竖线
 	
-	while(i < lcddev.width)
-	{
-		LCD_DrawLine(i, 20, i, 20 + lcddev.width);
-		i += 15;
-	}
-
-	while(j < lcddev.width + 30)
-	{
-		LCD_DrawLine(0, j, lcddev.width, j);
-		j+=15;
-	}
-		
 	//得分固定标记（得分：）
 	fWriteHz24(GB_24[35].Msk, 20,280, 1, WHITE);
-  fWriteHz24(GB_24[36].Msk, 40,280, 1, WHITE);
+	fWriteHz24(GB_24[36].Msk, 40,280, 1, WHITE);
 	fWriteHz24(GB_24[37].Msk, 60,280, 1, WHITE);
 	FillCircle(100, 290, 10, BLACK);
 	
 	fWriteHz24(GB_24[26].Msk, 180,280, 1, WHITE);//认输
 	fWriteHz24(GB_24[27].Msk, 200,280, 1, WHITE);
-	
-	
 }
 
 //*************************************************
@@ -247,30 +239,50 @@ void FillCircle(u16 x0, u16 y0, u16 r, u16 Color)
 //*************************************************
 int CheckAd(u8 x,u8 y)
 {
-	u16 temp_x=0;
-	u16 temp_y=0;
-	
-	u16 a1=0;
-	u16 b1=0;
+    u16 grid_size, a1, b1;
+    // 棋盘区域：x(30~210), y(60~240) 每个格子60x60像素
+    if(x < 30 || x > 210 || y < 60 || y > 240) return 0;
 
-	for(temp_y=20+15;temp_y<(lcddev.height-60);temp_y+=15)
-	{
-		for(temp_x=0+15;temp_x<lcddev.width;temp_x+=15)
-		{
-			a1=temp_x/15-1;
-			b1=(temp_y-20)/15-1;
-			if(y>20 && y<lcddev.height-60 && x > temp_x-7.5 && x < temp_x+7.5 && y > temp_y-7.5 && y < temp_y+7.5 && map[a1][b1]==0)
-			{			
-					a.chess_x = temp_x;
-					a.chess_y = temp_y;
-					a.m=a1;
-					a.n=b1;
-					return 1;
-			}
-		}
-	}
-	return 0;
+    grid_size = 60; // 每个格子60像素
+    a1 = (x - 30)/grid_size;
+    b1 = (y - 60)/grid_size;
+    
+    if(a1 > 2 || b1 > 2) return 0;
+    if(map[a1][b1] != 0) return 0;
+
+    // 计算棋子中心坐标（格子中心点）
+    a.chess_x = 30 + a1*grid_size + grid_size/2;
+    a.chess_y = 60 + b1*grid_size + grid_size/2;
+    a.m = a1;
+    a.n = b1;
+    return 1;
 }
+
+
+/*
+// old CheckAd
+int CheckAd(u8 x,u8 y)
+{
+	u16 grid_size, a1, b1;
+    // 将屏幕划分为3x3网格（40-200为棋盘区域）
+    if(x<40 || x>200 || y<60 || y>180) return 0;
+
+    
+    grid_size = 80; // 每个格子80像素
+    a1 = (x-40)/grid_size;
+    b1 = (y-60)/grid_size;
+    
+    if(a1>2 || b1>2) return 0;
+    if(map[a1][b1] != 0) return 0;
+
+    // 计算棋子中心坐标
+    a.chess_x = 40 + a1*grid_size + grid_size/2;
+    a.chess_y = 60 + b1*grid_size + grid_size/2;
+    a.m = a1;
+    a.n = b1;
+    return 1;
+}
+*/
 
 void test(u16 x, u16 y, u8 test)
 {
@@ -295,192 +307,145 @@ void DrawSide(u16 side)
 	}
 }
 
-void DrawChess(u16 side, u8 mode, u8 ch_s) //ch_s默认0，黑棋1，白棋2
+void DrawChess(u16 side, u8 mode, u8 ch_s)
 {
-	short t = 999;
-	char *pStr;
-	char *gStr;
-	
-	while(1){
-		delay_ms(50);
-			tp_dev.scan(0);
-			if (tp_dev.sta & TP_PRES_DOWN) //判断触摸屏是否被按下
-			{
-				if (tp_dev.x[0] < lcddev.width && tp_dev.y[0] < lcddev.height)
-				{
-					if (tp_dev.x[0] > 180 && tp_dev.y[0] > 280 && tp_dev.x[0] < (lcddev.width - 15) && tp_dev.y[0] < 300)
-					{
-						if(side ==1)
-						{
-							Result(2);
-						}
-						else if(side ==2)
-						{
-							Result(1);
-						}
-						app_init();
-						exit(0);
-					}
-					test(tp_dev.x[0],tp_dev.y[0],enable_test);
-	        switch (mode)
-					{
-						case 0:
-			
-							if (CheckAd(tp_dev.x[0], tp_dev.y[0])) //限制条件
-						{
-							//画棋子
-							if (side == 1) // 黑
-							{
-								FillCircle(a.chess_x, a.chess_y, 5, BLACK);
-								FillCircle(100, 290, 10, RED);
-							}
-							else if (side == 2) //白
-							{
-								FillCircle(a.chess_x, a.chess_y, 5, RED);
-								FillCircle(100, 290, 10, BLACK);
-							}
-							PutChess(side, a.m, a.n);
-						}
-						break;
-					case 1:
-						//configUDPServer("39.108.176.84", "1600");
-					
-						if (side == ch_s)
-						{
-							if (CheckAd(tp_dev.x[0], tp_dev.y[0]))
-							{
-								//画棋子
-								if (side == 1) // 黑
-								{
-									FillCircle(a.chess_x, a.chess_y, 5, BLACK);
-									FillCircle(100, 290, 10, RED);
-								}
-								else if (side == 2) //白
-								{
-									FillCircle(a.chess_x, a.chess_y, 5, RED);
-									FillCircle(100, 290, 10, BLACK);
-								}
-								PutChess(side, a.m, a.n);
-							}
-							
-							//上传数据
-							//sendUDPMsg(*pStr,1024);
-						}
-					else
-					{
-						//等待数据传入
-						//*gStr=getReceivedMsg(1024);
-						
-						
-						if (side == 1) // 黑
-								{
-									FillCircle(a.chess_x, a.chess_y, 5, BLACK);
-									FillCircle(100, 290, 10, RED);
-								}
-						else if (side == 2) //白
-								{
-									FillCircle(a.chess_x, a.chess_y, 5, RED);
-									FillCircle(100, 290, 10, BLACK);
-								}
-						   PutChess(side, a.m, a.n);
-						}
-					break;
-				}	
-			}
-		}
-		delay_ms(50);
-	}
+    short t = 999;
+    char *pStr;
+    char *gStr;
+    
+    while(1){
+        delay_ms(50);
+        tp_dev.scan(0);
+        if (tp_dev.sta & TP_PRES_DOWN)
+        {
+            if (tp_dev.x[0] < lcddev.width && tp_dev.y[0] < lcddev.height)
+            {
+                if (tp_dev.x[0] > 180 && tp_dev.y[0] > 280 && tp_dev.x[0] < (lcddev.width - 15) && tp_dev.y[0] < 300)
+                {
+                    if(side ==1)
+                    {
+                        Result(2);
+                    }
+                    else if(side ==2)
+                    {
+                        Result(1);
+                    }
+                    app_init();
+                    return;
+                }
+                test(tp_dev.x[0],tp_dev.y[0],enable_test);
+                switch (mode)
+                {
+                    case 0:
+                        if (CheckAd(tp_dev.x[0], tp_dev.y[0]))
+                        {
+                            if (side == 1) // 画X
+                            {
+                                lcd_line(a.chess_x-20, a.chess_y-20, a.chess_x+20, a.chess_y+20, RED);
+                                lcd_line(a.chess_x+20, a.chess_y-20, a.chess_x-20, a.chess_y+20, RED);
+                                FillCircle(100, 290, 10, RED);
+                            }
+                            else if (side == 2) //画O
+                            {
+                                FillCircle(a.chess_x, a.chess_y, 20, BLUE);
+                                FillCircle(a.chess_x, a.chess_y, 15, WHITE);
+                                FillCircle(100, 290, 10, BLACK);
+                            }
+                            PutChess(side, a.m, a.n);
+                        }
+                        break;
+                    case 1:
+                        if (side == ch_s)
+                        {
+                            if (CheckAd(tp_dev.x[0], tp_dev.y[0]))
+                            {
+                                if (side == 1) // 画X
+                                {
+                                    lcd_line(a.chess_x-20, a.chess_y-20, a.chess_x+20, a.chess_y+20, RED);
+                                    lcd_line(a.chess_x+20, a.chess_y-20, a.chess_x-20, a.chess_y+20, RED);
+                                    FillCircle(100, 290, 10, RED);
+                                }
+                                else if (side == 2) //画O
+                                {
+                                    FillCircle(a.chess_x, a.chess_y, 20, BLUE);
+                                    FillCircle(a.chess_x, a.chess_y, 15, WHITE);
+                                    FillCircle(100, 290, 10, BLACK);
+                                }
+                                PutChess(side, a.m, a.n);
+                            }
+                        }
+                        break;
+                }
+            }
+        }
+        delay_ms(50);
+    }
 }
 
-void PutChess(u16 side, u16 m,u16 n)
+
+void PutChess(u16 side, u16 m, u16 n)
 {
-	map[m][n]=side;
-	Result(win());
-	if(side == 1)
-	{
-		side =2;
-	}
-	else if(side ==2)
-	{
-		side =1;
-	}
-	DrawChess(side, mode, ch_s);
+		u8 result;
+    map[m][n] = side;
+    result = win();
+    if (result != 0) {
+        Result(result); // 只有游戏结束才进入结果界面
+        return;
+    }
+    // 切换玩家
+    side = (side == 1) ? 2 : 1;
+    DrawChess(side, mode, ch_s);
 }
 
 int win()
 {
-    int x = 0, y = 0, z, nz, x_1, y_1, t;
-    for (x = 0; x < 15; x++)
-    {
-        for (y = 0; y < 15; y++)
-        {
-            z = map[x][y];
-            if (z == 0)
-            {
-            }
-            else
-            {
-                //建立子检索点 对该点全面检索
-                x_1 = x;
-                y_1 = y;
-                for (t = 1; t < 5; t++)
-                { 
-                    nz = map[x_1 + t][y_1];
-                    if (nz != z)
-                        break;
-                }
-                if (t == 5) //获胜
-                    return z;
-                for (t = 1; t < 5; t++)
-                { 
-                    nz = map[x_1][y_1 + t];
-                    if (nz != z)
-                        break;
-                }
-                if (t == 5) //获胜
-                    return z;
-                for (t = 1; t < 5; t++)
-                { 
-                    nz = map[x_1 + t][y_1 + t];
-                    if (nz != z)
-                        break;
-                }
-                if (t == 5) //获胜
-                    return z;
-                for (t = 1; t < 5; t++)
-                { 
-                    nz = map[x_1 - t][y_1 + t];
-                    if (nz != z)
-                        break;
-                }
-                if (t == 5) //获胜
-                    return z;
-            }
-        }
+    int i, full;
+    // 横向检查
+    for(i=0; i<3; i++){
+        if(map[i][0] && map[i][0]==map[i][1] && map[i][1]==map[i][2])
+            return map[i][0];
     }
-    return 0;
+    
+    // 纵向检查
+    for(j=0; j<3; j++){
+        if(map[0][j] && map[0][j]==map[1][j] && map[1][j]==map[2][j])
+            return map[0][j];
+    }
+    
+    // 对角线检查
+    if(map[0][0] && map[0][0]==map[1][1] && map[1][1]==map[2][2])
+        return map[0][0];
+    if(map[0][2] && map[0][2]==map[1][1] && map[1][1]==map[2][0])
+        return map[0][2];
+    
+    // 平局检查
+	full = 1;
+    for(i=0; i<3; i++)
+        for(j=0; j<3; j++)
+            if(map[i][j]==0) full=0;
+    return full ? 3 : 0; // 3表示平局
 }
 
 
 int IfWin(u16 x, u16 y, u16 color)
 {
     int a = 0, b = 0;
-    for (a = x - 4; a <= x + 4; a++) //判断横
+    for (a = x - 2; a <= x + 2; a++) //判断横
         if (map[a][y] == color && map[a + 1][y] == color && map[a + 2][y] == color && map[a + 3][y] == color && map[a + 4][y] == color)
         {
             return 1;
         }
-    for (b = y - 4; b <= y + 4; b++) //判断竖
+    for (b = y - 2; b <= y + 2; b++) //判断竖
         if (map[x][b] == color && map[x][b + 1] == color && map[x][b + 2] == color && map[x][b + 3] == color && map[x][b + 4] == color)
         {
             return 1;
         }
-    for (a = x - 4, b = y - 4; a <= x + 4; a++, b++) //判断右斜
+    for (a = x - 2, b = y - 2; a <= x + 2; a++, b++) //判断右斜
         if (map[a][b] == color && map[a + 1][b + 1] == color && map[a + 2][b + 2] == color && map[a + 3][b + 3] == color && map[a + 4][b + 4] == color)
         {
             return 1;
         }
-    for (a = x - 4, b = y + 4; a <= x + 4; a++, b--) //判断左斜
+    for (a = x - 2, b = y + 2; a <= x + 2; a++, b--) //判断左斜
         if (map[a][b] == color && map[a + 1][b - 1] == color && map[a + 2][b - 2] == color && map[a + 3][b - 3] == color && map[a + 4][b - 4] == color)
         {
             return 1;
@@ -491,66 +456,50 @@ int IfWin(u16 x, u16 y, u16 color)
 
 void Result(u8 flag)
 {
-	if (flag == 1)
-	{
-		LCD_Clear(BLACK);
-		//黑棋获胜
-		POINT_COLOR = WHITE;
-    LCD_DrawLine(0, 100, 240, 100);
-	  LCD_DrawLine(0, 200, 240, 200);
-		fWriteHz24(GB_24[28].Msk, 70,140, 1, RED);
-    fWriteHz24(GB_24[29].Msk, 100,140, 1, RED);
-	  fWriteHz24(GB_24[22].Msk, 130,140, 1, RED);
-    fWriteHz24(GB_24[23].Msk, 160,140, 1, RED);
-
-		
-		while (1)
-		{
-			//显示信息
-
-			delay_ms(50);
-
-			tp_dev.scan(0);
-			if (tp_dev.sta & TP_PRES_DOWN) //判断触摸屏是否被按下
-			{
-				if (tp_dev.x[0] < lcddev.width && tp_dev.y[0] < lcddev.height)
-				{
-					app_init();
-				}
-			}
-			delay_ms(50);
-		}
-
-		app_init();
-	}
-	else if (flag == 2)
-	{
-		LCD_Clear(WHITE);
-		//白棋获胜
+    if (flag == 1)
+    {
+        LCD_Clear(BLACK);
+        //X胜利
+        POINT_COLOR = WHITE;
+        LCD_DrawLine(0, 100, 240, 100);
+        LCD_DrawLine(0, 200, 240, 200);
+        fWriteHz24(GB_24[28].Msk, 70,140, 1, RED); // X
+        fWriteHz24(GB_24[29].Msk, 100,140, 1, RED); // 胜
+        fWriteHz24(GB_24[22].Msk, 130,140, 1, RED); // 利
+    }
+    else if (flag == 2)
+    {
+        LCD_Clear(WHITE);
+        //O胜利
+        LCD_DrawLine(0, 100, 240, 100);
+        LCD_DrawLine(0, 200, 240, 200);
+        fWriteHz24(GB_24[30].Msk, 70,140, 1, RED); // O
+        fWriteHz24(GB_24[29].Msk, 100,140, 1, RED); // 胜
+        fWriteHz24(GB_24[22].Msk, 130,140, 1, RED); // 利
+    }
+    else if (flag == 3)
+    {
+        LCD_Clear(WHITE);
+        //平局
+        LCD_DrawLine(0, 100, 240, 100);
+        LCD_DrawLine(0, 200, 240, 200);
+        fWriteHz24(GB_24[42].Msk, 80,140, 1, RED); // 平
+        fWriteHz24(GB_24[43].Msk, 110,140, 1, RED); // 局
+    }
     
-    LCD_DrawLine(0, 100, 240, 100);
-	  LCD_DrawLine(0, 200, 240, 200);
-		fWriteHz24(GB_24[30].Msk, 70,140, 1, RED);
-    fWriteHz24(GB_24[29].Msk, 100,140, 1, RED);
-	  fWriteHz24(GB_24[22].Msk, 130,140, 1, RED);
-    fWriteHz24(GB_24[23].Msk, 160,140, 1, RED);
-		while (1)
-		{
-			//显示信息
-
-			delay_ms(50);
-
-			tp_dev.scan(0);
-			if (tp_dev.sta & TP_PRES_DOWN) //判断触摸屏是否被按下
-			{
-				if (tp_dev.x[0] < lcddev.width && tp_dev.y[0] < lcddev.height)
-				{
-					app_init();
-				}
-			}
-			delay_ms(50);
-		}
-	}
+    while (1)
+    {
+        delay_ms(50);
+        tp_dev.scan(0);
+        if (tp_dev.sta & TP_PRES_DOWN)
+        {
+            if (tp_dev.x[0] < lcddev.width && tp_dev.y[0] < lcddev.height)
+            {
+                app_init();
+            }
+        }
+        delay_ms(50);
+    }
 }
 //************************************************
 
